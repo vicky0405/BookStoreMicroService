@@ -9,13 +9,15 @@ const { Op } = require("sequelize");
 const axios = require("axios");
 require("dotenv").config();
 
+let messageBus;
+
 if (process.env.NODE_ENV === "production") {
   // Azure deploy
-  const AzureAdapter = require("./messaging/azureAdapter");
+  const AzureAdapter = require("../messaging/azureAdapter");
   messageBus = new AzureAdapter(process.env.AZURE_CONNECTION_STRING);
 } else {
   // Local dev
-  messageBus = require("./messaging/localAdapter");
+  messageBus = require("../messaging/localAdapter");
 }
 
 const MONOLITH_URL = process.env.MONOLITH_URL;

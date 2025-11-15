@@ -232,12 +232,40 @@ module.exports = {
 
 // New method: get books with pricing from DB view
 module.exports.getAllBooksPricing = async () => {
-  const rows = await sequelize.query(
-    `SELECT v.*, c.name AS category_name, p.name AS publisher_name
-     FROM v_books_pricing v
-     LEFT JOIN categories c ON c.id = v.category_id
-     LEFT JOIN publishers p ON p.id = v.publisher_id`,
-    { type: QueryTypes.SELECT }
-  );
-  return rows;
+  try {
+    const rows = await sequelize.query(
+      `SELECT v.*, c.name AS category_name, p.name AS publisher_name
+       FROM v_books_pricing v
+       LEFT JOIN categories c ON c.id = v.category_id
+       LEFT JOIN publishers p ON p.id = v.publisher_id`,
+      { type: QueryTypes.SELECT }
+    );
+    return rows;
+  } catch (err) {
+    console.warn(
+      "Pricing view v_books_pricing unavailable – falling back to base books table:",
+      err.message
+    );
+    // Fallback: return normal books with mapped fields expected by frontend
+    const books = await Book.findAll({
+      include: [
+        { model: Category, as: "category", attributes: ["id", "name"] },
+        { model: Publisher, as: "publisher", attributes: ["id", "name"] },
+        { model: BookImages, as: "images", attributes: ["id", "image_path"] },
+      ],
+    });
+    return books.map((b) => ({
+      id: b.id,
+      title: b.title,
+      author: b.author,
+      category_id: b.category_id,
+      publisher_id: b.publisher_id,
+      original_price: b.price, // mimic view column naming
+      discounted_price: null,
+      quantity_in_stock: b.quantity_in_stock,
+      category_name: b.category?.name || null,
+      publisher_name: b.publisher?.name || null,
+      publication_year: b.publication_year,
+    }));
+  }
 };

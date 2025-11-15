@@ -183,4 +183,16 @@ app.use(
   })
 );
 
+// Serve static uploaded images via gateway (proxy to backend uploads)
+// IMPORTANT: Do not append "/uploads" to target, otherwise request path becomes
+// /uploads/uploads/filename and backend static middleware cannot find the file.
+app.use(
+  "/uploads",
+  createProxyMiddleware({
+    target: MONOLITH_URL, // backend root; keeps original /uploads/filename path
+    changeOrigin: true,
+    logLevel: "debug",
+  })
+);
+
 app.listen(PORT, () => console.log("✅ Gateway running on port " + PORT));

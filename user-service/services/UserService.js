@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const { User } = require("../models");
 const { Op } = require("sequelize");
 const cacheHelper = require("../utils/cacheHelper");

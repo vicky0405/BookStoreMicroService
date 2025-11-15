@@ -141,3 +141,7 @@ cython_debug/
 *.sw?
 # Ignore local environment
 .env.local
+frontend/.env.development
+frontend/.env.production
+frontend/.env.production
+frontend/.env.production
