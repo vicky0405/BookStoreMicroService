@@ -18,9 +18,10 @@ if (process.env.NODE_ENV === "production") {
 const { DB_DIALECT, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } =
   process.env;
 
-process.env.DATABASE_URL = `mysql://${DB_USER}:${encodeURIComponent(
+// For environments relying on DATABASE_URL (e.g., Azure), emit an MSSQL URL
+process.env.DATABASE_URL = `mssql://${DB_USER}:${encodeURIComponent(
   DB_PASSWORD
-)}@${DB_HOST}:${DB_PORT}/${DB_NAME}?ssl=true`;
+)}@${DB_HOST}:${DB_PORT || 1433}/${DB_NAME}?encrypt=true`;
 
 // =============================
 // Initialize all models

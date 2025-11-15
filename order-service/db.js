@@ -6,19 +6,18 @@ const DB_NAME = process.env.DB_NAME;
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_HOST = process.env.DB_HOST;
-const DB_PORT = process.env.DB_PORT || 3306;
+const DB_PORT = process.env.DB_PORT || 1433;
 
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   host: DB_HOST,
-  port: DB_PORT,
-  dialect: "mysql",
+  port: process.env.DB_INSTANCE ? undefined : DB_PORT,
+  dialect: "mssql",
   logging: false,
   dialectOptions: {
-    // Only enable SSL options if the user explicitly requests it
-    // by setting USER_DB_SSL=true or DB_SSL=true in env.
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
+    options: {
+      encrypt: true,
+      trustServerCertificate: true,
+      instanceName: process.env.DB_INSTANCE || undefined,
     },
   },
 });
@@ -26,10 +25,10 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
 sequelize
   .authenticate()
   .then(() => {
-    console.log("✅ order-service: Connected to MySQL successfully.");
+    console.log("✅ order-service: Connected to SQL Server successfully.");
   })
   .catch((err) => {
-    console.error("❌ order-service: MySQL connection error:", err);
+    console.error("❌ order-service: SQL Server connection error:", err);
   });
 
 module.exports = sequelize;

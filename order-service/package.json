@@ -19,7 +19,7 @@
     "express": "^4.18.2",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.0",
-    "mysql2": "^3.3.0",
+    "tedious": "^16.6.1",
     "nodemailer": "^7.0.10",
     "sequelize": "^6.32.1"
   },

@@ -78,7 +78,7 @@ const getTop10MostSoldBooks = async (month, year) => {
     
     // Lấy thêm đường dẫn ảnh đại diện của sách (ảnh đầu tiên theo id nhỏ nhất)
     const results = await sequelize.query(
-        `SELECT 
+        `SELECT TOP 10
             b.id,
             b.title,
             fi.image_path AS image_path,
@@ -97,8 +97,7 @@ const getTop10MostSoldBooks = async (month, year) => {
          ) fi ON fi.book_id = b.id
          WHERE MONTH(o.order_date) = ? AND YEAR(o.order_date) = ?
          GROUP BY b.id, b.title, fi.image_path
-         ORDER BY total_sold DESC
-         LIMIT 10`,
+         ORDER BY total_sold DESC`,
         {
             replacements: [month, year],
             type: QueryTypes.SELECT
