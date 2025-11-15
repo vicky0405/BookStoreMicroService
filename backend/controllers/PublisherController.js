@@ -1,4 +1,4 @@
-const publisherService = require("../services/publisherService");
+const publisherService = require("../services/PublisherService");
 
 const getAllPublishers = async (req, res) => {
     try {

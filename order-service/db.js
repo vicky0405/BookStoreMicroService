@@ -18,7 +18,13 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
       encrypt: true,
       trustServerCertificate: true,
       instanceName: process.env.DB_INSTANCE || undefined,
+      charset: 'utf8',
+      requestTimeout: 30000,
     },
+  },
+  define: {
+    charset: 'utf8',
+    collate: 'utf8_general_ci',
   },
 });
 

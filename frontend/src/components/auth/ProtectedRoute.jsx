@@ -9,8 +9,10 @@ import Loading from '../common/Loading';
 import './AccessDenied.css';
 
 const ProtectedRoute = ({ redirectPath = '/login', isAllowed = true, children }) => {
-  const { user, loading, isAuthenticated } = useAuth();
-  const { initialized } = useAuthorization();
+  const { user, loading, isAuthenticated: ctxIsAuthenticated } = useAuth();
+  const { initialized } = useAuthorization() || {}; // fallback nếu context chưa có initialized
+  const isAuthenticated = (typeof ctxIsAuthenticated !== 'undefined') ? ctxIsAuthenticated : !!user;
+  const isInit = (typeof initialized !== 'undefined') ? initialized : true;
   const location = useLocation();
 
   // Debug log
@@ -25,7 +27,7 @@ const ProtectedRoute = ({ redirectPath = '/login', isAllowed = true, children })
   }, [location.pathname, isAllowed, isAuthenticated, loading, initialized]);
 
   // Hiển thị trạng thái loading nếu đang kiểm tra xác thực
-  if (loading || !initialized) {
+  if (loading || !isInit) {
     return <Loading message="Đang kiểm tra thông tin đăng nhập..." />;
   }
 

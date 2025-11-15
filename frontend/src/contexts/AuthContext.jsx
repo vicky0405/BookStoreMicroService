@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService from '../services/AuthService';
 import { getCart, addToCart as addToCartApi } from '../services/CartService';
 import GuestCart from '../utils/GuestCart';
+import { debugLog } from '../utils/axiosInstance';
 
 const AuthContext = createContext();
 
@@ -39,38 +40,46 @@ export const AuthProvider = ({ children }) => {
                 const parsed = JSON.parse(storedUser);
                 if (parsed && typeof parsed === "object" && (parsed.id || parsed.username)) {
                     if (storedToken) {
+                        // Validate token với server
                         authService.validateToken()
                             .then(serverUser => {
-                                
+                                // Kiểm tra tài khoản có bị khóa không
                                 if (serverUser.is_active === 0) {
                                     localStorage.removeItem('user');
                                     localStorage.removeItem('token');
                                     setUser(null);
                                     alert('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
                                 } else {
+                                    // Token hợp lệ, set user
                                     setUser(parsed);
                                 }
                             })
-                            .catch(() => {
-                            
-                                setUser(parsed);
+                            .catch((err) => {
+                                // Token không hợp lệ hoặc hết hạn - XÓA user và token
+                                console.warn('Token validation failed, clearing auth data:', err.message);
+                                localStorage.removeItem('user');
+                                localStorage.removeItem('token');
+                                setUser(null);
                             })
                             .finally(() => {
                                 setLoading(false);
                             });
                     } else {
-                        setUser(parsed);
+                        // Có user nhưng không có token - xóa user
+                        console.warn('User exists but no token found, clearing user data');
+                        localStorage.removeItem('user');
+                        setUser(null);
                         setLoading(false);
                     }
                 } else {
-                    
+                    // User data không hợp lệ
                     localStorage.removeItem('user');
                     localStorage.removeItem('token');
                     setUser(null);
                     setLoading(false);
                 }
             } catch (e) {
-                
+                // Parse error
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
                 setUser(null);
@@ -141,8 +150,9 @@ export const AuthProvider = ({ children }) => {
     const login = async (username, password) => {
         try {
             
-            console.log("Attempting login to API via authService");
+            debugLog("[AUTH CONTEXT] Attempting login to API via authService", { username });
             const response = await authService.login(username, password);
+            debugLog("[AUTH CONTEXT] Response received", { hasUser: !!response?.user, hasToken: !!response?.token });
 
             if (!response) {
                 throw new Error('No data received from server');
@@ -151,9 +161,29 @@ export const AuthProvider = ({ children }) => {
             const userData = response.user || response;
             const token = response.token;
 
+            debugLog("[AUTH CONTEXT] User data parsed", { 
+                userId: userData?.id, 
+                username: userData?.username,
+                roleId: userData?.role_id 
+            });
+            debugLog("[AUTH CONTEXT] Token received", { hasToken: !!token });
+
             // Kiểm tra userData hợp lệ
             if (!userData || typeof userData !== "object" || (!userData.id && !userData.username)) {
                 throw new Error('Dữ liệu người dùng không hợp lệ');
+            }
+            
+            // Map role_id to role string for compatibility with routes
+            if (userData.role_id && !userData.role) {
+                const roleMap = {
+                    1: 'ADMIN',
+                    2: 'SALESPERSON',
+                    3: 'INVENTORY',
+                    4: 'CUSTOMER',
+                    5: 'ORDER_MANAGER',
+                    6: 'SHIPPER'
+                };
+                userData.role = roleMap[userData.role_id] || 'CUSTOMER';
             }
             
             // Kiểm tra tài khoản có bị khóa không
@@ -161,33 +191,56 @@ export const AuthProvider = ({ children }) => {
                 throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
             }
             
-            console.log("Login successful, user data:", userData);
+            debugLog("[AUTH CONTEXT] Login successful, processed user data", { 
+                userId: userData.id,
+                role: userData.role,
+                isActive: userData.is_active
+            });
 
-            // Lưu cả user và token vào localStorage
-            localStorage.setItem('user', JSON.stringify(userData));
+            // QUAN TRỌNG: Lưu token NGAY LẬP TỨC trước khi làm bất cứ việc gì khác
+            // authService.login đã lưu token rồi, nhưng đảm bảo chắc chắn ở đây
             if (token) {
+                debugLog("[AUTH CONTEXT] Saving token to localStorage", {});
                 localStorage.setItem('token', token);
             }
+            
+            // Lưu user vào localStorage
+            debugLog("[AUTH CONTEXT] Saving user to localStorage", {});
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            // Set user state
+            debugLog("[AUTH CONTEXT] Setting user state", {});
             setUser(userData);
 
             // Merge guest cart -> server cart (best-effort)
-            const guestItems = GuestCart.getItems();
-            if (Array.isArray(guestItems) && guestItems.length > 0) {
-                for (const it of guestItems) {
-                    try {
-                        if (it && it.bookID && it.quantity > 0) {
-                            await addToCartApi(it.bookID, it.quantity);
+            // Bọc trong try-catch riêng để không ảnh hưởng đến login flow
+            try {
+                debugLog("[AUTH CONTEXT] Starting guest cart merge after login", {});
+                const guestItems = GuestCart.getItems();
+                if (Array.isArray(guestItems) && guestItems.length > 0) {
+                    for (const it of guestItems) {
+                        try {
+                            if (it && it.bookID && it.quantity > 0) {
+                                debugLog("[AUTH CONTEXT] Merging guest item", { bookID: it.bookID, quantity: it.quantity });
+                                await addToCartApi(it.bookID, it.quantity);
+                            }
+                        } catch (e) {
+                            console.warn('Merge guest cart item failed', it, e?.response?.data || e?.message);
                         }
-                    } catch (e) {
-                        // bỏ qua từng lỗi item, tiếp tục item khác
-                        console.warn('Merge guest cart item failed', it, e?.response?.data || e?.message);
                     }
+                    // clear guest cart sau khi merge
+                    GuestCart.clear();
+                    debugLog("[AUTH CONTEXT] Guest cart cleared after merge", {});
                 }
-                // clear guest cart sau khi merge
-                GuestCart.clear();
+                // load lại số lượng giỏ từ server
+                await loadCartCount();
+                debugLog("[AUTH CONTEXT] Cart count loaded after login", { count: cartItemCount });
+            } catch (cartError) {
+                console.warn('Cart operations failed after login, but login succeeded:', cartError);
+                setCartItemCount(0);
             }
-            // load lại số lượng giỏ từ server
-            await loadCartCount();
+
+            debugLog("[AUTH CONTEXT] Login completed successfully - returning user data", {});
 
             return userData;
         } catch (error) {
@@ -218,7 +271,9 @@ export const AuthProvider = ({ children }) => {
         getRoleLabel,
         cartItemCount,
         updateCartCount,
-        loadCartCount
+        loadCartCount,
+        // Thêm cờ isAuthenticated cho các route bảo vệ
+        isAuthenticated: !!user
     };
 
     return (

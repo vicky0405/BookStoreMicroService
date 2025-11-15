@@ -1,44 +1,12 @@
-import axios from "axios";
+import axiosInstance, { debugLog } from "../utils/axiosInstance";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_URL = `${API_BASE}/cart`;
 
-const apiClient = axios.create({
-  baseURL: API_BASE,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
-    }
-    return Promise.reject(error);
-  }
-);
-
 export const getCart = async () => {
   console.log("DA VAO CART");
   try {
-    const response = await apiClient.get("/cart");
+    const response = await axiosInstance.get("/cart");
     return response.data;
   } catch (error) {
     console.error("Error getting cart:", error);
@@ -54,7 +22,7 @@ export const addToCart = async (bookID, quantity) => {
       "quantity:",
       quantity
     );
-    const response = await apiClient.post("/cart", {
+    const response = await axiosInstance.post("/cart", {
       bookID,
       quantity,
     });
@@ -69,7 +37,7 @@ export const addToCart = async (bookID, quantity) => {
 
 export const updateQuantity = async (bookID, quantity) => {
   try {
-    const response = await apiClient.put("/cart/quantity", {
+    const response = await axiosInstance.put("/cart/quantity", {
       bookID,
       quantity,
     });
@@ -82,7 +50,7 @@ export const updateQuantity = async (bookID, quantity) => {
 
 export const removeFromCart = async (bookID) => {
   try {
-    const response = await apiClient.delete(`/cart/${bookID}`);
+    const response = await axiosInstance.delete(`/cart/${bookID}`);
     return response.data;
   } catch (error) {
     console.error("Error removing from cart:", error);
@@ -92,7 +60,7 @@ export const removeFromCart = async (bookID) => {
 
 export const clearCart = async () => {
   try {
-    const response = await apiClient.delete("/cart");
+    const response = await axiosInstance.delete("/cart");
     return response.data;
   } catch (error) {
     console.error("Error clearing cart:", error);

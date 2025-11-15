@@ -3,12 +3,12 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const { checkAndDecreaseStock } = require("./services/BookService");
-if (process.env.NODE_ENV === "production") {
+if (process.env.AZURE_CONNECTION_STRING) {
   // Azure deploy
   const AzureAdapter = require("./messaging/azureAdapter");
   messageBus = new AzureAdapter(process.env.AZURE_CONNECTION_STRING);
 } else {
-  // Local dev
+  // Local dev or Docker without Azure
   messageBus = require("./messaging/localAdapter");
 }
 
@@ -60,8 +60,15 @@ app.use(
   })
 );
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ charset: 'utf-8' }));
+app.use(bodyParser.urlencoded({ extended: true, charset: 'utf-8' }));
+
+// Ensure all responses are UTF-8
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
+
 app.use("/uploads", express.static(require("path").join(__dirname, "uploads")));
 
 // Test route

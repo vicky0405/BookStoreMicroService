@@ -16,6 +16,7 @@ import MyOrdersPage from "./pages/my-orders/MyOrdersPage.jsx";
 import OrderManagementPanel from "./pages/panel/OrderManagerPanel.jsx";
 import ShipperPanel from "./pages/panel/ShipperPanel.jsx";
 import axios from "axios";
+import DebugLogs from "./pages/DebugLogs";
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
@@ -91,6 +92,9 @@ function App() {
 
   return (
     <Routes>
+      {/* Public debug route for capturing logs */}
+      <Route path="/debug-logs" element={<DebugLogs />} />
+
       <Route path="/" element={<HomeRoute />} />
 
       <Route path="/books" element={<BooksPage />} />

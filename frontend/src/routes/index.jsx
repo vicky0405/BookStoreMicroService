@@ -10,6 +10,7 @@ import { useAuthorization } from '../contexts/AuthorizationContext';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import ZaloPayResultPage from '../pages/ZaloPayResultPage';
 import Top10BooksReportPage from '../pages/reports/Top10BooksReportPage';
+import DebugLogs from '../pages/DebugLogs';
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -20,6 +21,15 @@ const AppRoutes = () => {
     console.log("AppRoutes rendered - Auth state:", { user, loading });
     console.log("Authorization initialized:", initialized);
   }, [user, loading, initialized]);
+
+  // Cho phép debug-logs route hoạt động ngay cả khi đang loading
+  if (window.location.pathname === '/debug-logs') {
+    return (
+      <Routes>
+        <Route path="/debug-logs" element={<DebugLogs />} />
+      </Routes>
+    );
+  }
 
   // Hiển thị loading nếu đang kiểm tra xác thực HOẶC nếu AuthorizationContext chưa được khởi tạo
   if (loading || !initialized) {
@@ -66,6 +76,9 @@ const AppRoutes = () => {
   // Đối với tất cả các điều kiện khác, chúng tôi đã sẵn sàng để render routes
   return (
     <Routes>
+      {/* Debug route - công khai */}
+      <Route path="/debug-logs" element={<DebugLogs />} />
+      
       {/* Route công khai - không cần xác thực */}
       <Route path="/login" element={
         user ? <Navigate to={getDefaultRoute()} replace /> : <LoginPage />

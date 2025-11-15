@@ -234,11 +234,27 @@ module.exports = {
 module.exports.getAllBooksPricing = async () => {
   try {
     const rows = await sequelize.query(
-      `SELECT v.*, c.name AS category_name, p.name AS publisher_name
+      `SELECT 
+        v.id,
+        CAST(v.title AS NVARCHAR(255)) AS title,
+        CAST(v.author AS NVARCHAR(255)) AS author,
+        v.category_id,
+        v.publisher_id,
+        v.publication_year,
+        v.original_price,
+        v.quantity_in_stock,
+        CAST(v.description AS NVARCHAR(MAX)) AS description,
+        v.created_at,
+        v.updated_at,
+        v.discounted_price,
+        CAST(c.name AS NVARCHAR(255)) AS category_name,
+        CAST(p.name AS NVARCHAR(255)) AS publisher_name
        FROM v_books_pricing v
        LEFT JOIN categories c ON c.id = v.category_id
        LEFT JOIN publishers p ON p.id = v.publisher_id`,
-      { type: QueryTypes.SELECT }
+      { 
+        type: QueryTypes.SELECT
+      }
     );
     return rows;
   } catch (err) {

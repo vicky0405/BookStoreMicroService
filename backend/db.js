@@ -26,6 +26,10 @@ const sequelize = new Sequelize(
         encrypt: process.env.DB_ENCRYPT === 'false' ? false : true,
         trustServerCertificate: true,
         instanceName: process.env.DB_INSTANCE || undefined,
+        // Force UTF-8 encoding for Vietnamese characters
+        charset: 'utf8',
+        // Additional options to ensure proper encoding
+        enableArithAbort: true,
       },
     },
   }

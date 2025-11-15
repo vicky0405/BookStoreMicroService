@@ -11,12 +11,12 @@ require("dotenv").config();
 
 let messageBus;
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.AZURE_CONNECTION_STRING) {
   // Azure deploy
   const AzureAdapter = require("../messaging/azureAdapter");
   messageBus = new AzureAdapter(process.env.AZURE_CONNECTION_STRING);
 } else {
-  // Local dev
+  // Local dev or Docker without Azure
   messageBus = require("../messaging/localAdapter");
 }
 

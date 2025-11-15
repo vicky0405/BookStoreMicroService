@@ -33,24 +33,32 @@ const LoginForm = ({ onForgotPassword, onRegister }) => {
     setLoginError('');
 
     try {
-      console.log("Submitting login:", values.username);
+      console.log("[LOGIN FORM] Submitting login:", values.username);
         // Use AuthContext login
       const user = await login(values.username, values.password);
-      console.log("Login successful:", user);
+      console.log("[LOGIN FORM] Login successful:", user);
+      console.log("[LOGIN FORM] Current location before redirect:", window.location.pathname);
 
-      // Chuyển hướng dựa vào role_id - match with App.jsx routes exactly
+      // Chuyển hướng dựa vào role_id
       if (user.role_id === 1) {
+        // Admin - vào AdminPanel
+        console.log('[LOGIN FORM] Navigating to /admin for admin');
         navigate('/admin', { replace: true });
       } else if (user.role_id === 2) {
-        navigate('/sales', { replace: true });
+        // Salesperson - redirect to invoices page  
+        navigate('/invoices', { replace: true });
       } else if (user.role_id === 3) {
-        navigate('/inventory', { replace: true });
+        // Inventory - redirect to books page
+        navigate('/books', { replace: true });
       } else if (user.role_id === 4) {
+        // Customer
         navigate('/', { replace: true });
       } else if (user.role_id === 5) {
-        navigate('/order-manager', { replace: true });
+        // Order Manager
+        navigate('/orders', { replace: true });
       } else if (user.role_id === 6) {
-        navigate('/shipper', { replace: true });
+        // Shipper
+        navigate('/orders', { replace: true });
       } else {
         setLoginError('Tài khoản không có quyền truy cập hệ thống.');
       }

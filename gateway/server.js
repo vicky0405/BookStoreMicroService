@@ -6,7 +6,14 @@ app.use(cors());
 import dotenv from "dotenv";
 dotenv.config();
 
-const MONOLITH_URL = process.env.MONOLITH_URL;
+// Log all incoming requests
+app.use((req, res, next) => {
+  console.log("[GATEWAY] Incoming request:", req.method, req.path);
+  console.log("[GATEWAY] Authorization header:", req.headers.authorization ? "YES" : "NO");
+  next();
+});
+
+const MONOLITH_URL = process.env.BACKEND_URL || process.env.MONOLITH_URL;
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL;
 const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL;
 const PORT = process.env.PORT;
@@ -153,6 +160,11 @@ app.use(
     target: MONOLITH_URL + "/api/cart",
     changeOrigin: true,
     logLevel: "debug",
+    onProxyReq: (proxyReq, req, res) => {
+      console.log("[GATEWAY CART] Original URL:", req.originalUrl);
+      console.log("[GATEWAY CART] Authorization header:", req.headers.authorization ? "YES" : "NO");
+      console.log("[GATEWAY CART] All headers:", req.headers);
+    }
   })
 );
 
