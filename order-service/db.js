@@ -13,6 +13,7 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   port: process.env.DB_INSTANCE ? undefined : DB_PORT,
   dialect: "mssql",
   logging: false,
+  timezone: '+00:00',
   dialectOptions: {
     options: {
       encrypt: true,
@@ -20,6 +21,7 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
       instanceName: process.env.DB_INSTANCE || undefined,
       charset: 'utf8',
       requestTimeout: 30000,
+      useUTC: false,
     },
   },
   define: {

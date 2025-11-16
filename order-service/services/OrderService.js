@@ -248,9 +248,10 @@ const getOrdersByShipperID = async (
   // 3️⃣ Gọi User Service để lấy thông tin người dùng
   if (userIds.length > 0) {
     try {
-      const { data: users } = await axios.post(USER_SERVICE_URL, {
-        ids: userIds,
-      });
+      const { data: users } = await axios.post(
+        `${USER_SERVICE_URL}/api/users/batch`,
+        { ids: userIds }
+      );
       userMap = Object.fromEntries(users.map((u) => [u.id, u]));
     } catch (err) {
       console.error("⚠️ Lỗi gọi User Service:", err.message);
@@ -260,9 +261,10 @@ const getOrdersByShipperID = async (
   // 4️⃣ Gọi Book Service để lấy thông tin sách
   if (bookIds.length > 0) {
     try {
-      const { data: books } = await axios.post(MONOLITH_URL, {
-        ids: bookIds,
-      });
+      const { data: books } = await axios.post(
+        `${MONOLITH_URL}/api/books/batch`,
+        { ids: bookIds }
+      );
       bookMap = Object.fromEntries(books.map((b) => [b.id, b]));
     } catch (err) {
       console.error("⚠️ Lỗi gọi Book Service:", err.message);
@@ -275,7 +277,7 @@ const getOrdersByShipperID = async (
     user: userMap[order.user_id] || null,
     details: order.details.map((d) => ({
       ...d,
-      book: bookMap[d.book_id] || null,
+      Book: bookMap[d.book_id] || null,
     })),
   }));
 
@@ -283,6 +285,9 @@ const getOrdersByShipperID = async (
 };
 
 const createOrder = async (orderData) => {
+  console.log('[ORDER SERVICE] createOrder started');
+  console.log('[ORDER SERVICE] orderData:', JSON.stringify(orderData, null, 2));
+  
   const {
     userID,
     shipping_method_id,
@@ -296,12 +301,13 @@ const createOrder = async (orderData) => {
     orderDetails,
   } = orderData;
 
-  return await sequelize.transaction(async (t) => {
+  console.log('[ORDER SERVICE] Starting transaction...');
+  const order = await sequelize.transaction(async (t) => {
+    console.log('[ORDER SERVICE] Creating order record...');
     // Tạo đơn hàng
-    const order = await Order.create(
+    const newOrder = await Order.create(
       {
         user_id: userID,
-        order_date: new Date(),
         shipping_method_id,
         shipping_address,
         promotion_code: promotion_code || null,
@@ -315,11 +321,14 @@ const createOrder = async (orderData) => {
       { transaction: t }
     );
 
+    console.log('[ORDER SERVICE] Order created with ID:', newOrder.id);
+    console.log('[ORDER SERVICE] Creating order details...');
+    
     // Lưu chi tiết đơn
     for (const detail of orderDetails) {
       await OrderDetail.create(
         {
-          order_id: order.id,
+          order_id: newOrder.id,
           book_id: detail.book_id,
           quantity: detail.quantity,
           unit_price: detail.unit_price,
@@ -328,17 +337,28 @@ const createOrder = async (orderData) => {
       );
     }
 
-    // Emit event "order.created" → Book Service xử lý trừ tồn kho
-    const message = {
+    console.log('[ORDER SERVICE] Order details created');
+    return newOrder;
+  });
+
+  console.log('[ORDER SERVICE] Transaction committed successfully');
+  
+  // Emit event "order.created" KHÔNG CHỜ (fire-and-forget)
+  // Response sẽ trả về ngay, message bus xử lý background
+  setImmediate(() => {
+    messageBus.publish("order.created", {
       orderId: order.id,
       orderDetails: orderDetails.map((d) => ({
         book_id: d.book_id,
         quantity: d.quantity,
       })),
-    };
-    await messageBus.publish("order.created", message);
-    return order;
+    }).catch(err => {
+      console.error("⚠️ Failed to publish order.created event:", err.message);
+    });
   });
+
+  console.log('[ORDER SERVICE] Returning order:', order.id);
+  return order;
 };
 
 const confirmOrder = async (orderId) => {
@@ -359,8 +379,9 @@ const completeOrder = async (orderId) => {
     where: { order_id: orderId },
   });
   if (assignment) {
-    assignment.completion_date = new Date();
-    await assignment.save();
+    await assignment.update({
+      completion_date: sequelize.literal('GETDATE()')
+    });
   }
 
   return { order, assignment };
@@ -386,52 +407,66 @@ const cancelOrder = async (orderId) => {
       };
     }
 
-    // Lấy chi tiết đơn để hoàn kho
+    // Lấy chi tiết đơn để emit event khôi phục kho
     const details = await OrderDetail.findAll({
       where: { order_id: orderId },
       transaction: t,
     });
-    for (const d of details) {
-      const book = await Book.findByPk(d.book_id, {
-        transaction: t,
-        lock: t.LOCK.UPDATE,
-      });
-      if (book) {
-        const currentStock = Number(book.quantity_in_stock) || 0;
-        const qty = Number(d.quantity) || 0;
-        book.quantity_in_stock = currentStock + qty;
-        await book.save({ transaction: t });
-      }
-    }
 
+    // Cập nhật trạng thái đơn hàng
     order.status = "cancelled";
     await order.save({ transaction: t });
+
+    // Emit event "order.cancelled" để Book Service khôi phục tồn kho
+    // Không chờ message bus, fire-and-forget
+    setImmediate(() => {
+      messageBus.publish("order.cancelled", {
+        orderId: order.id,
+        orderDetails: details.map((d) => ({
+          book_id: d.book_id,
+          quantity: d.quantity,
+        })),
+      }).catch(err => {
+        console.error("⚠️ Failed to publish order.cancelled event:", err.message);
+      });
+    });
+
     return {
       success: true,
-      message: "Đơn hàng đã được hủy và tồn kho đã được khôi phục",
+      message: "Đơn hàng đã được hủy và yêu cầu khôi phục tồn kho đã được gửi",
     };
   });
 };
 
 const assignOrderToShipper = async (orderId, shipperId, assignedBy) => {
+  console.log('[ORDER SERVICE] assignOrderToShipper called with:', { orderId, shipperId, assignedBy });
+  
   if (!orderId || !shipperId || !assignedBy) {
+    console.error('[ORDER SERVICE] Missing required parameters:', { orderId, shipperId, assignedBy });
     throw new Error("Thiếu thông tin orderId, shipperId hoặc assignedBy");
   }
 
+  console.log('[ORDER SERVICE] Finding order by ID:', orderId);
   const order = await Order.findByPk(orderId);
-  if (!order) throw new Error("Order not found");
+  if (!order) {
+    console.error('[ORDER SERVICE] Order not found:', orderId);
+    throw new Error("Order not found");
+  }
 
+  console.log('[ORDER SERVICE] Current order status:', order.status);
+  console.log('[ORDER SERVICE] Updating order status to delivering...');
   order.status = "delivering";
   await order.save();
 
-  await OrderAssignment.create({
+  console.log('[ORDER SERVICE] Creating OrderAssignment...');
+  const assignment = await OrderAssignment.create({
     order_id: orderId,
     assigned_by: assignedBy,
     shipper_id: shipperId,
-    assigned_at: new Date(),
     completion_date: null,
   });
 
+  console.log('[ORDER SERVICE] OrderAssignment created successfully:', assignment.id);
   return order;
 };
 

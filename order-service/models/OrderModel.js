@@ -18,7 +18,7 @@ const Order = sequelize.define(
     },
     order_date: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+      defaultValue: sequelize.literal('GETDATE()'),
     },
     shipping_method_id: {
       type: DataTypes.INTEGER,

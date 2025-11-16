@@ -298,6 +298,13 @@ const toggleAccountStatus = async (id, status) => {
   if (!user) throw { status: 404, message: "User not found" };
   const is_active = status === "active" ? 1 : 0;
   await user.update({ is_active });
+  // Invalidate user caches
+  await cacheHelper.delMany([
+    CACHE_KEYS.ALL_USERS,
+    CACHE_KEYS.ALL_SHIPPERS,
+    CACHE_KEYS.USERS_BY_ROLE(user.role_id),
+    CACHE_KEYS.USER_BY_ID(id),
+  ]);
   return user;
 };
 

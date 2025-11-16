@@ -67,7 +67,7 @@ const MyOrderDetailsModal = ({ order, open, onClose, onCancelOrder }) => {
             <table className="order-items-table">
               <thead>
                 <tr>
-                  <th style={{minWidth: 180}}>Tên sản phẩm</th>
+                  <th style={{minWidth: 180}}>Tên sách</th>
                   <th style={{minWidth: 80, textAlign: 'right'}}>Số lượng</th>
                   <th style={{minWidth: 100, textAlign: 'right'}}>Đơn giá</th>
                   <th style={{minWidth: 120, textAlign: 'right'}}>Thành tiền</th>

@@ -20,7 +20,7 @@ const OrderAssignment = sequelize.define(
     },
     assigned_at: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+      defaultValue: sequelize.literal('GETDATE()'),
     },
     completion_date: {
       type: DataTypes.DATE,

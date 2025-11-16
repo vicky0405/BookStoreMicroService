@@ -355,7 +355,7 @@ const OrderTable = ({ type = "processing", isShipper = false }) => {
                             <table className="order-items-table">
                               <thead>
                                 <tr>
-                                  <th>Tên sản phẩm</th>
+                                  <th>Tên sách</th>
                                   <th>Số lượng</th>
                                   <th>Đơn giá</th>
                                   <th>Thành tiền</th>

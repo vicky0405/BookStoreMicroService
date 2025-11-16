@@ -84,6 +84,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - USER_SERVICE_URL=http://user-service:5001
+      - MONOLITH_URL=http://backend:5000
       - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
     ports:
       - "5002:5002"

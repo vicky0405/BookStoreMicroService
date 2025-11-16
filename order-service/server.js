@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const orderRoutes = require("./routes/OrderRoutes"); // nếu bạn gộp AuthRoutes + UserRoutes vào user-service
 const shippingMethodRoutes = require("./routes/ShippingMethodRoutes");
+const reportRoutes = require("./routes/ReportRoutes");
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
@@ -22,6 +23,7 @@ if (process.env.AZURE_CONNECTION_STRING) {
 // Mount order
 app.use("/api/orders", orderRoutes);
 app.use("/api/shipping-methods", shippingMethodRoutes);
+app.use("/api/reports", reportRoutes);
 
 // optional: health + verify token endpoint
 app.get("/health", (req, res) => res.json({ ok: true }));

@@ -1,35 +1,6 @@
 const reportService = require("../services/ReportService");
 
-const getRevenueByYearOffline = async (req, res) => {
-    try {
-        const year = req.query.year || req.params.year;
-        if (!year) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Thiếu tham số năm" 
-            });
-        }
-        
-        const monthly = await reportService.getRevenueByYearOffline(year);
-        res.json({ 
-            success: true, 
-            data: { monthly } 
-        });
-    } catch (error) {
-        console.error("Lỗi trong getRevenueByYearOffline:", error);
-        if (error.message === "Thiếu tham số năm") {
-            return res.status(400).json({ 
-                success: false, 
-                message: error.message 
-            });
-        }
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi server khi lấy doanh thu theo năm (offline)" 
-        });
-    }
-};
-
+// E-commerce revenue by year
 const getRevenueByYear = async (req, res) => {
     try {
         const year = req.query.year || req.params.year;
@@ -40,13 +11,13 @@ const getRevenueByYear = async (req, res) => {
             });
         }
         
-    const monthly = await reportService.getRevenueByYear(year);
+        const monthly = await reportService.getRevenueByYear(year);
         res.json({ 
             success: true, 
             data: { monthly } 
         });
     } catch (error) {
-    console.error("Lỗi trong getRevenueByYear:", error);
+        console.error("Lỗi trong getRevenueByYear:", error);
         if (error.message === "Thiếu tham số năm") {
             return res.status(400).json({ 
                 success: false, 
@@ -60,80 +31,7 @@ const getRevenueByYear = async (req, res) => {
     }
 };
 
-const getRevenueByYearAll = async (req, res) => {
-    try {
-        const year = req.query.year || req.params.year;
-        if (!year) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Thiếu tham số năm" 
-            });
-        }
-        
-        const monthly = await reportService.getRevenueByYearAll(year);
-        res.json({ 
-            success: true, 
-            data: { monthly } 
-        });
-    } catch (error) {
-        console.error("Lỗi trong getRevenueByYearAll:", error);
-        if (error.message === "Thiếu tham số năm") {
-            return res.status(400).json({ 
-                success: false, 
-                message: error.message 
-            });
-        }
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi server khi lấy doanh thu theo năm (tổng hợp)" 
-        });
-    }
-};
-
-const getDailyRevenueByMonthOffline = async (req, res) => {
-    try {
-        const month = req.query.month || req.params.month;
-        const year = req.query.year || req.params.year;
-        if (!month || !year) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Thiếu tham số tháng hoặc năm" 
-            });
-        }
-        
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const dailyData = await reportService.getDailyRevenueByMonthOffline(month, year);
-        
-        const normalized = [];
-        for (let d = 1; d <= daysInMonth; d++) {
-            const found = dailyData.find(item => Number(item.day) === d);
-            normalized.push({
-                day: d,
-                totalRevenue: found ? Number(found.totalRevenue) || 0 : 0,
-                totalSold: found ? Number(found.totalSold) || 0 : 0
-            });
-        }
-        
-        res.json({ 
-            success: true, 
-            data: { daily: normalized } 
-        });
-    } catch (error) {
-        console.error("Lỗi trong getDailyRevenueByMonthOffline:", error);
-        if (error.message === "Thiếu tham số tháng hoặc năm") {
-            return res.status(400).json({ 
-                success: false, 
-                message: error.message 
-            });
-        }
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi server khi lấy doanh thu theo ngày (offline)" 
-        });
-    }
-};
-
-// Bỏ hậu tố 'Online' -> gộp về một hàm chung
+// E-commerce daily revenue by month
 const getDailyRevenueByMonth = async (req, res) => {
     try {
         const month = req.query.month || req.params.month;
@@ -146,7 +44,7 @@ const getDailyRevenueByMonth = async (req, res) => {
         }
         
         const daysInMonth = new Date(year, month, 0).getDate();
-    const dailyData = await reportService.getDailyRevenueByMonth(month, year);
+        const dailyData = await reportService.getDailyRevenueByMonth(month, year);
         
         const normalized = [];
         for (let d = 1; d <= daysInMonth; d++) {
@@ -163,7 +61,7 @@ const getDailyRevenueByMonth = async (req, res) => {
             data: { daily: normalized } 
         });
     } catch (error) {
-    console.error("Lỗi trong getDailyRevenueByMonth:", error);
+        console.error("Lỗi trong getDailyRevenueByMonth:", error);
         if (error.message === "Thiếu tham số tháng hoặc năm") {
             return res.status(400).json({ 
                 success: false, 
@@ -177,49 +75,7 @@ const getDailyRevenueByMonth = async (req, res) => {
     }
 };
 
-const getDailyRevenueByMonthAll = async (req, res) => {
-    try {
-        const month = req.query.month || req.params.month;
-        const year = req.query.year || req.params.year;
-        if (!month || !year) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Thiếu tham số tháng hoặc năm" 
-            });
-        }
-        
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const dailyData = await reportService.getDailyRevenueByMonthAll(month, year);
-        
-        const normalized = [];
-        for (let d = 1; d <= daysInMonth; d++) {
-            const found = dailyData.find(item => Number(item.day) === d);
-            normalized.push({
-                day: d,
-                totalRevenue: found ? Number(found.totalRevenue) || 0 : 0,
-                totalSold: found ? Number(found.totalSold) || 0 : 0
-            });
-        }
-        
-        res.json({ 
-            success: true, 
-            data: { daily: normalized } 
-        });
-    } catch (error) {
-        console.error("Lỗi trong getDailyRevenueByMonthAll:", error);
-        if (error.message === "Thiếu tham số tháng hoặc năm") {
-            return res.status(400).json({ 
-                success: false, 
-                message: error.message 
-            });
-        }
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi server khi lấy doanh thu theo ngày (tổng hợp)" 
-        });
-    }
-};
-
+// Total revenue by month
 const getTotalRevenueByMonth = async (req, res) => {
     try {
         const month = req.query.month || req.params.month;
@@ -269,45 +125,19 @@ const getTotalRevenueByMonth = async (req, res) => {
     }
 };
 
-// (Đã gộp logic vào hàm getDailyRevenueByMonth ở trên)
-
-const getTop10MostSoldBooksOffline = async (req, res) => {
-    try {
-        const month = req.query.month || req.params.month;
-        const year = req.query.year || req.params.year;
-        
-        const books = await reportService.getTop10MostSoldBooksOffline(month, year);
-        res.json({ 
-            success: true, 
-            data: books 
-        });
-    } catch (error) {
-        console.error("Lỗi trong getTop10MostSoldBooksOffline:", error);
-        if (error.message === "Thiếu tham số tháng hoặc năm") {
-            return res.status(400).json({ 
-                success: false, 
-                message: error.message 
-            });
-        }
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi server khi lấy top 10 sách bán chạy offline" 
-        });
-    }
-};
-
+// Top 10 most sold books (E-commerce)
 const getTop10MostSoldBooks = async (req, res) => {
     try {
         const month = req.query.month || req.params.month;
         const year = req.query.year || req.params.year;
         
-    const books = await reportService.getTop10MostSoldBooks(month, year);
+        const books = await reportService.getTop10MostSoldBooks(month, year);
         res.json({ 
             success: true, 
             data: books 
         });
     } catch (error) {
-    console.error("Lỗi trong getTop10MostSoldBooks:", error);
+        console.error("Lỗi trong getTop10MostSoldBooks:", error);
         if (error.message === "Thiếu tham số tháng hoặc năm") {
             return res.status(400).json({ 
                 success: false, 
@@ -317,31 +147,6 @@ const getTop10MostSoldBooks = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: "Lỗi server khi lấy top 10 sách bán chạy" 
-        });
-    }
-};
-
-const getTop10MostSoldBooksAll = async (req, res) => {
-    try {
-        const month = req.query.month || req.params.month;
-        const year = req.query.year || req.params.year;
-        
-    const books = await reportService.getTop10MostSoldBooks(month, year);
-        res.json({ 
-            success: true, 
-            data: books 
-        });
-    } catch (error) {
-        console.error("Lỗi trong getTop10MostSoldBooksAll:", error);
-        if (error.message === "Thiếu tham số tháng hoặc năm") {
-            return res.status(400).json({ 
-                success: false, 
-                message: error.message 
-            });
-        }
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi server khi lấy top 10 sách bán chạy tổng hợp" 
         });
     }
 };
@@ -412,16 +217,10 @@ const getBookRevenueDetailsByMonth = async (req, res) => {
 };
 
 module.exports = {
-    getTop10MostSoldBooksOffline,
-    getTop10MostSoldBooks,
-    getTop10MostSoldBooksAll,
-    getTotalRevenueByMonth,
-    getDailyRevenueByMonth,
-    getDailyRevenueByMonthOffline,
-    getDailyRevenueByMonthAll,
-    getRevenueByYearOffline,
     getRevenueByYear,
-    getRevenueByYearAll,
+    getDailyRevenueByMonth,
+    getTotalRevenueByMonth,
+    getTop10MostSoldBooks,
     getBookRevenueDetailsByYear,
     getBookRevenueDetailsByMonth
 };

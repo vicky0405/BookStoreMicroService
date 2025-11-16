@@ -101,12 +101,15 @@ const deleteBook = async (req, res) => {
 const getOldStockBooks = async (req, res) => {
   try {
     const months = req.query.months ? parseInt(req.query.months) : 2;
+    console.log('[BOOK] getOldStockBooks called with months:', months);
     const books = await bookService.getOldStockBooks(months);
+    console.log('[BOOK] Found old stock books:', books.length);
     res.json({
       success: true,
       data: books,
     });
   } catch (error) {
+    console.error('[BOOK] Error in getOldStockBooks:', error);
     res.status(500).json({
       success: false,
       error: "Failed to fetch old stock books",

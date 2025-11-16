@@ -63,6 +63,13 @@ app.use(
     target: ORDER_SERVICE_URL + "/api/orders",
     changeOrigin: true,
     logLevel: "debug",
+    onProxyReq: (proxyReq, req, res) => {
+      console.log("[GATEWAY ORDERS] Original URL:", req.originalUrl);
+      console.log("[GATEWAY ORDERS] Authorization header:", req.headers.authorization ? "YES" : "NO");
+      if (!req.headers.authorization) {
+        console.log("[GATEWAY ORDERS] Headers seen:", req.headers);
+      }
+    }
   })
 );
 
